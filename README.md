@@ -1,5 +1,8 @@
 # Boox Notes Sync
 
+> [!NOTE]
+> **This tool is written using AI tools.** If you hate that (or are ambivalent about it like myself), you may want to skip this project.
+
 I *love* my Boox Go6 Gen2. However, I hate that its Notes app doesn't sync with my (pretty particular) note system in other devices.
 
 So I asked Claude to make this tool. It will pull handwritten notebooks off Dropbox and turn them into "clean" vector PDFs, split by the day each page was written. ("Clean" here is a pretty elastic term. If you're doing art sketches with your Boox, this tool will murder your drawings 😅).
@@ -108,3 +111,7 @@ Stroke types handled: 2, 21 and 22 (pens), 15 (highlighter) and 19 (inserted ima
 - The `.note` format is undocumented and reverse-engineered from exports from a Boox Go 6. A firmware update could change it.
 - Pressure-to-width mapping is a visual approximation of the device's rendering, not an exact match.
 - Only `.note` files are used; the PDFs and other files that Boox syncs alongside them are ignored.
+
+## Acknowledgments
+
+- Thanks to <https://github.com/RobertCsordas/OnyxNoteRenderer> for the inspiration about reverse-engineering the `.note` format, and for some path smoothing code.
