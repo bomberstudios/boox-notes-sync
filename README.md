@@ -26,24 +26,25 @@ bun run build    # writes dist/boox-sync
 
 ## Usage
 
-Download every notebook in the Dropbox folder, render it, and split it by day:
+Search Dropbox under `/onyx` for every `.note` file (at any depth), render each one, and split it by day:
 
 ```bash
 bun run sync
 ```
 
-Only some notebooks (names without `.note`, case-insensitive):
+Only some notebooks (names without `.note`, case-insensitive; `device/name` also works):
 
 ```bash
 bun run sync Journal
 bun run sync Journal "Asuntos Pendientes"
+bun run sync Go6_2/Journal
 ```
 
 Options:
 
 | Option | Default | Meaning |
 |---|---|---|
-| `-r, --remote` | `/onyx/Go6_2/Notebooks` | Dropbox folder holding the `.note` files |
+| `-r, --remote` | `/onyx` | Dropbox folder to search recursively for `.note` files |
 | `-o, --out-dir` | `boox-export` | Where output is written |
 | `--force` | off | Re-download and re-render even if unchanged |
 | `--day-start` | `4` | Hour a new day begins, so late-night writing counts toward the previous day |
@@ -53,16 +54,22 @@ Options:
 
 ```
 boox-export/
-  Journal/
-    Journal.note                  the downloaded file
-    Journal.pdf                   vector PDF, one page per note page
-    by-day/
-      Journal_2026-09-05.pdf
-      Journal_2026-09-06.pdf
+  Go6_2/                          one folder per device (the first folder under /onyx)
+    Journal/
+      Journal.note                the downloaded file
+      Journal.pdf                 vector PDF, one page per note page
+      by-day/
+        Journal_2026-09-05.pdf
+        Journal_2026-09-06.pdf
+        ...
+    Habits/
       ...
-  Habits/
+  <another device>/
     ...
 ```
+
+- Boox devices sync to `/onyx/<device>/...`, so the device name comes from the Dropbox path. Notes directly under `/onyx`, or found via a different `--remote`, go in `unknown/`.
+- If two notes on the same device share a name (say `Notebooks/Journal.note` and `Archive/Journal.note`), the folders below the device are added to the name (`Archive-Journal`).
 
 - A page written on more than one day appears in each of those days' files.
 - A page with no strokes (only an image, say) takes the previous page's date.
@@ -100,4 +107,4 @@ Stroke types handled: 2, 21 and 22 (pens), 15 (highlighter) and 19 (inserted ima
 
 - The `.note` format is undocumented and reverse-engineered from exports from a Boox Go 6. A firmware update could change it.
 - Pressure-to-width mapping is a visual approximation of the device's rendering, not an exact match.
-- The path `/onyx/Go6_2/Notebooks` is where this Boox syncs; change it with `--remote`.
+- Only `.note` files are used; the PDFs and other files that Boox syncs alongside them are ignored.
