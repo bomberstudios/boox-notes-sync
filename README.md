@@ -5,9 +5,14 @@
 
 I *love* my Boox Go6 Gen2. However, I hate that its Notes app doesn't sync with my (pretty particular) note system in other devices.
 
-So I asked Claude to make this tool. It will pull handwritten notebooks off Dropbox and turn them into "clean" vector PDFs, split by the day each page was written. ("Clean" here is a pretty elastic term. If you're doing art sketches with your Boox, this tool will murder your drawings 😅).
+So I asked Claude to make this tool. It will pull handwritten notebooks off Dropbox and turn them into "clean" vector PDFs, split by the day each page was written. Two words here are doing some heavy lifting:
+
+- **Handwritten** means I have 0 text blocks on my notes. I have _no idea_ how they'll render in the export because I don't use them on my notes.I didn't buy an eink device with a stylus to _use a keyboard, like an animal_
+- **Clean** is used very liberally. If you're doing art sketches with your Boox, this tool will 100% murder your drawings with its smoothing algorithm 😅
 
 The app assumes you've set up your Boox device to sync to Dropbox, and store Notes in Boox's proprietary `.note` format. The format is a zip file with a bunch of stuff inside, that allows us to reconstruct the vector output with a bit of AI-assisted reverse engineering. It also stores timestamp data, which is *great* because I work with large notebooks, but want to split them by day automatically.
+
+My plan is to run this daily, and store the partial, daily PDF files on my Obsidian-like vault, linked to the relevant dates. But if your use case is different, the tool also saves a single PDF with all the pages for each notebook.
 
 ## Requirements
 
