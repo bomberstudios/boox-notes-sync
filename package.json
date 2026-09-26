@@ -1,0 +1,23 @@
+{
+  "name": "boox-notes",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Download Boox .note files from Dropbox and render them to vector PDFs split by day",
+  "scripts": {
+    "sync": "bun src/sync.ts",
+    "render": "bun src/render.ts",
+    "typecheck": "tsc --noEmit",
+    "build": "bun build --compile src/sync.ts --outfile dist/boox-sync"
+  },
+  "dependencies": {
+    "fflate": "^0.8.3",
+    "pdf-lib": "^1.17.1",
+    "pdfkit": "^0.20.2"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.2",
+    "@types/pdfkit": "^0.17.6",
+    "typescript": "^7.0.2"
+  }
+}
