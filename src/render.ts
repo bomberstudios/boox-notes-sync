@@ -93,16 +93,26 @@ function drawStroke(doc: PDFKit.PDFDocument, s: Stroke) {
       }
     }
   }
+  if (s.kind === 15) {
+    // Our custom outline() builds a filled polygon from per-point tangents/normals, which
+    // is what a pressure-variable pen needs but is overkill (and fragile) for a highlighter's
+    // constant width: on a short, near-degenerate swipe (a couple of points, or a quick dab)
+    // the tangent estimate gets noisy and the polygon can fold over itself into a visible
+    // notch. A highlighter is exactly what PDF native line stroking is for, so use that instead.
+    x = smooth(x, 5);
+    y = smooth(y, 5);
+    doc.strokeColor(rgb(s.color), HIGHLIGHT_ALPHA).lineWidth(s.width).lineCap("round").lineJoin("round");
+    if (n < 2) doc.circle(x[0]!, y[0]!, s.width / 2).fillColor(rgb(s.color), HIGHLIGHT_ALPHA).fill();
+    else {
+      doc.moveTo(x[0]!, y[0]!);
+      for (let i = 1; i < n; i++) doc.lineTo(x[i]!, y[i]!);
+      doc.stroke();
+    }
+    return;
+  }
   x = smooth(x, 5);
   y = smooth(y, 5);
   const ws = new Float64Array(n);
-  if (s.kind === 15) {
-    ws.fill(s.width);
-    doc.fillColor(rgb(s.color), HIGHLIGHT_ALPHA);
-    outline(doc, x, y, ws); // flat ends, no caps
-    doc.fill("nonzero");
-    return;
-  }
   const pr = smooth(pts.pressure, 9);
   for (let i = 0; i < n; i++) ws[i] = s.width * (0.65 + 0.5 * Math.sqrt(Math.min(Math.max(pr[i]! / MAX_PRESSURE, 0), 1)));
   doc.fillColor(rgb(s.color), 1);
