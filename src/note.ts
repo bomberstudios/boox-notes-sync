@@ -8,14 +8,16 @@ export interface Points {
 }
 
 export interface Stroke {
-  kind: number; // shape type: 2/21/22 pens, 15 highlighter, 19 image
+  kind: number; // shape type: 2/21/22 pens, 15 highlighter, 19 image, 38 timestamp stamp
   color: number; // signed ARGB
   width: number;
   created: number; // epoch ms
-  bbox: [number, number, number, number] | null; // left, top, right, bottom
+  bbox: [number, number, number, number] | null; // left, top, right, bottom, already in page coordinates
   points?: Points;
   image?: string; // archive path (kind 19)
   matrix?: number[]; // row-major 3x3 affine for strokes that were moved/scaled
+  text?: string; // stamped text (kind 38); bbox is where to draw it, points are corner markers only
+  framed?: boolean; // kind 38: device draws a border around the text
 }
 
 export interface Page {
@@ -38,6 +40,7 @@ export interface Note {
 const PEN_KINDS = new Set([2, 21, 22]);
 const HIGHLIGHTER = 15;
 const IMAGE = 19;
+const TIMESTAMP = 38; // the "insert date/time" stamp widget
 const utf8 = new TextDecoder();
 
 interface Field {
@@ -167,6 +170,15 @@ export async function loadNote(path: string): Promise<Note> {
       if (kind === IMAGE) {
         const rel = (JSON.parse(utf8.decode(r.get(14)!.b)).relativePath ?? "").replace(/^\/+/, "");
         stroke.image = names.find((x) => x.endsWith("resource/data/" + rel));
+      } else if (kind === TIMESTAMP) {
+        // the two "points" are just the box's corners, not ink to draw; bbox is already
+        // in final page coordinates (it matches the corners with the matrix applied), so
+        // the matrix is not needed for placement.
+        if (!bb || !r.has(10)) continue;
+        const meta = JSON.parse(utf8.decode(r.get(10)!.b));
+        stroke.text = meta.timestampBean?.formattedStr;
+        stroke.framed = !meta.noFrame;
+        if (!stroke.text) continue;
       } else if (PEN_KINDS.has(kind) || kind === HIGHLIGHTER) {
         stroke.points = points.get(pid)?.get(utf8.decode(r.get(1)!.b));
         if (!stroke.points) continue;

@@ -112,6 +112,21 @@ function drawStroke(doc: PDFKit.PDFDocument, s: Stroke) {
   doc.fill();
 }
 
+function drawTimestamp(doc: PDFKit.PDFDocument, s: Stroke) {
+  const [l, t, r, b] = s.bbox!;
+  const w = r - l;
+  const h = b - t;
+  if (s.framed) {
+    doc.rect(l, t, w, h).lineWidth(Math.max(s.width, 1)).strokeColor(rgb(s.color)).stroke();
+  }
+  const pad = h * 0.15;
+  const fontSize = Math.min(h - 2 * pad, w / (s.text!.length * 0.6));
+  doc
+    .fillColor(rgb(s.color), 1)
+    .fontSize(fontSize)
+    .text(s.text!, l, t + (h - fontSize) / 2, { width: w, align: "center", lineBreak: false });
+}
+
 function drawPage(doc: PDFKit.PDFDocument, page: Page, note: Note) {
   doc.addPage({ size: [page.width, page.height], margin: 0 });
   if (page.bgImage) doc.image(Buffer.from(note.files[page.bgImage]!), 0, 0, { width: page.width, height: page.height });
@@ -124,6 +139,8 @@ function drawPage(doc: PDFKit.PDFDocument, page: Page, note: Note) {
         const [l, t, r, b] = s.bbox;
         doc.image(Buffer.from(note.files[s.image]!), l, t, { width: r - l, height: b - t });
       }
+    } else if (s.kind === 38) {
+      if (s.text && s.bbox) drawTimestamp(doc, s);
     } else drawStroke(doc, s);
   }
 }
