@@ -8,7 +8,7 @@ export interface Points {
 }
 
 export interface Stroke {
-  kind: number; // shape type: 2/21/22 pens, 15 highlighter, 19 image, 38 timestamp stamp
+  kind: number; // shape type: 2/21/22 pens, 15 highlighter, 19 image, 33 link, 34 attachment, 38 timestamp stamp
   color: number; // signed ARGB
   width: number;
   created: number; // epoch ms
@@ -16,8 +16,11 @@ export interface Stroke {
   points?: Points;
   image?: string; // archive path (kind 19)
   matrix?: number[]; // row-major 3x3 affine for strokes that were moved/scaled
-  text?: string; // stamped text (kind 38); bbox is where to draw it, points are corner markers only
+  text?: string; // label to draw in the box (kinds 33/34/38); bbox is where to draw it
   framed?: boolean; // kind 38: device draws a border around the text
+  url?: string; // kind 33, link type URL: the target address
+  linkType?: "NOTE" | "DOCUMENT" | "URL"; // kind 33: what the link points at
+  attachment?: { path: string; name: string }; // kind 34: archive path and display name of the embedded file
 }
 
 export interface Page {
@@ -40,6 +43,8 @@ export interface Note {
 const PEN_KINDS = new Set([2, 21, 22]);
 const HIGHLIGHTER = 15;
 const IMAGE = 19;
+const LINK = 33; // the "insert link" widget: to a URL, another notebook, or a document
+const ATTACHMENT = 34; // the "insert file" widget: an embedded file (e.g. a .md note)
 const TIMESTAMP = 38; // the "insert date/time" stamp widget
 const utf8 = new TextDecoder();
 
@@ -179,6 +184,25 @@ export async function loadNote(path: string): Promise<Note> {
         stroke.text = meta.timestampBean?.formattedStr;
         stroke.framed = !meta.noFrame;
         if (!stroke.text) continue;
+      } else if (kind === LINK) {
+        // same corner-marker/bbox situation as the timestamp widget.
+        if (!bb || !r.has(10)) continue;
+        const meta = JSON.parse(utf8.decode(r.get(10)!.b));
+        stroke.linkType = meta.key;
+        if (meta.key === "URL") {
+          stroke.url = meta.value || meta.remark;
+          stroke.text = stroke.url;
+        } else {
+          stroke.text = meta.docBean?.title;
+        }
+        if (!stroke.text) continue;
+      } else if (kind === ATTACHMENT) {
+        if (!bb || !r.has(14)) continue;
+        const rel: string = (JSON.parse(utf8.decode(r.get(14)!.b)).relativePath ?? "").replace(/^\/+/, "");
+        const path = names.find((x) => x.endsWith("resource/data/" + rel));
+        if (!path) continue;
+        stroke.attachment = { path, name: rel };
+        stroke.text = rel;
       } else if (PEN_KINDS.has(kind) || kind === HIGHLIGHTER) {
         stroke.points = points.get(pid)?.get(utf8.decode(r.get(1)!.b));
         if (!stroke.points) continue;

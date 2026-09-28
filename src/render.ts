@@ -122,19 +122,41 @@ function drawStroke(doc: PDFKit.PDFDocument, s: Stroke) {
   doc.fill();
 }
 
-function drawTimestamp(doc: PDFKit.PDFDocument, s: Stroke) {
+/** A bordered, centred text label filling a stroke's bbox (timestamp stamps, link/attachment chips). */
+function drawChip(doc: PDFKit.PDFDocument, s: Stroke, text: string, frame: boolean) {
   const [l, t, r, b] = s.bbox!;
   const w = r - l;
   const h = b - t;
-  if (s.framed) {
-    doc.rect(l, t, w, h).lineWidth(Math.max(s.width, 1)).strokeColor(rgb(s.color)).stroke();
-  }
+  if (frame) doc.rect(l, t, w, h).lineWidth(Math.max(s.width, 1)).strokeColor(rgb(s.color)).stroke();
   const pad = h * 0.15;
-  const fontSize = Math.min(h - 2 * pad, w / (s.text!.length * 0.6));
+  const fontSize = Math.min(h - 2 * pad, w / (text.length * 0.6));
   doc
     .fillColor(rgb(s.color), 1)
     .fontSize(fontSize)
-    .text(s.text!, l, t + (h - fontSize) / 2, { width: w, align: "center", lineBreak: false });
+    .text(text, l, t + (h - fontSize) / 2, { width: w, align: "center", lineBreak: false });
+}
+
+/** Kind 33: a link chip to a URL (made clickable), another notebook, or an on-device document. */
+function drawLink(doc: PDFKit.PDFDocument, s: Stroke) {
+  const label = s.linkType === "URL" ? s.url! : `[${s.linkType}] ${s.text}`;
+  drawChip(doc, s, label, true);
+  if (s.linkType === "URL" && s.url) {
+    const [l, t, r, b] = s.bbox!;
+    doc.link(l, t, r - l, b - t, s.url);
+  }
+}
+
+/** Kind 34: an embedded file (e.g. a .md note), attached to the PDF and shown as a clickable chip. */
+function drawAttachment(doc: PDFKit.PDFDocument, s: Stroke, note: Note) {
+  const [l, t, r, b] = s.bbox!;
+  const bytes = note.files[s.attachment!.path]!;
+  // not in @types/pdfkit, but present at runtime (AttachmentsMixin)
+  (doc as unknown as { fileAnnotation: Function }).fileAnnotation(
+    l, t, r - l, b - t,
+    { src: bytes, name: s.attachment!.name },
+    { Name: "Paperclip" },
+  );
+  drawChip(doc, s, `[FILE] ${s.attachment!.name}`, true);
 }
 
 function drawPage(doc: PDFKit.PDFDocument, page: Page, note: Note) {
@@ -150,7 +172,11 @@ function drawPage(doc: PDFKit.PDFDocument, page: Page, note: Note) {
         doc.image(Buffer.from(note.files[s.image]!), l, t, { width: r - l, height: b - t });
       }
     } else if (s.kind === 38) {
-      if (s.text && s.bbox) drawTimestamp(doc, s);
+      if (s.text && s.bbox) drawChip(doc, s, s.text, s.framed ?? false);
+    } else if (s.kind === 33) {
+      if (s.text && s.bbox) drawLink(doc, s);
+    } else if (s.kind === 34) {
+      if (s.attachment && s.bbox) drawAttachment(doc, s, note);
     } else drawStroke(doc, s);
   }
 }
